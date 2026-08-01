@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog - PrintPro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h1>PrintPro</h1>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="blog.html" class="active">Blog</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="cart.html" class="cart-link"><i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="cart-badge" style="display: none;">0</span></a></li>
+            </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <section class="page-hero">
+        <div class="page-hero-content">
+            <h1>Our Blog</h1>
+            <p>Insights, tips, and stories about the printing industry</p>
+        </div>
+    </section>
+
+    <section class="blog-section">
+        <div class="container">
+            <div class="blog-grid" id="blog-grid">
+                <div class="loading"><div class="spinner"></div><p>Loading articles...</p></div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>PrintPro</h3>
+                    <p>Your trusted printing partner</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="products.html">Products</a></li>
+                        <li><a href="blog.html">Blog</a></li>
+                        <li><a href="about.html">About</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact Info</h3>
+                    <p>Email: info@printpro.com</p>
+                    <p>Phone: +234 (0) 123 456 789</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 PrintPro. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBlogPosts();
+            updateCartCount();
+        });
+
+        function loadBlogPosts() {
+            fetch('api/blog.php')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('blog-grid');
+                    if (data.success && data.posts.length > 0) {
+                        container.innerHTML = data.posts.map(post => `
+                            <article class="blog-card">
+                                <div class="blog-image">
+                                    <img src="${post.image || 'img/placeholder.jpg'}" alt="${post.title}" onerror="this.src='img/placeholder.jpg'">
+                                </div>
+                                <div class="blog-content">
+                                    <div class="blog-meta">
+                                        <span><i class="fas fa-folder"></i> ${post.category_name}</span>
+                                        <span><i class="fas fa-calendar"></i> ${new Date(post.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                    </div>
+                                    <h2>${post.product_name}</h2>
+                                    <p>${post.description ? post.description.substring(0, 150) + '...' : 'No description available.'}</p>
+                                    <div class="blog-footer">
+                                        <span class="blog-price"><i class="fas fa-tag"></i> ₦${parseFloat(post.price).toLocaleString()}</span>
+                                        <a href="products.html" class="btn btn-small">Read More</a>
+                                    </div>
+                                </div>
+                            </article>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<p class="no-products">No blog articles found</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('blog-grid').innerHTML = '<p class="no-products">Error loading articles</p>';
+                });
+        }
+    </script>
+</body>
+</html>

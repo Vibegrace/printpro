@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shopping Cart - PrintPro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     <style>
         .cart-container {
@@ -390,9 +391,10 @@
             <ul class="nav-menu">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="products.html">Products</a></li>
+                <li><a href="blog.html">Blog</a></li>
                 <li><a href="about.html">About</a></li>
                 <li><a href="contact.html">Contact</a></li>
-                <li><a href="cart.html" class="active">🛒 Cart <span id="cart-count" class="cart-badge" style="display: none;">0</span></a></li>
+                <li><a href="cart.html" class="active"><i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="cart-badge" style="display: none;">0</span></a></li>
             </ul>
             <div class="hamburger">
                 <span></span>
@@ -469,7 +471,7 @@
                 </div>
 
                 <div class="whatsapp-section">
-                    <p>📱 Complete your order by sending your details via WhatsApp</p>
+                    <p><i class="fas fa-mobile-alt"></i> Complete your order by sending your details via WhatsApp</p>
                     <p><strong>Order Summary:</strong></p>
                     <div id="whatsapp-order-summary" style="text-align:left;margin:10px 0;"></div>
                 </div>
@@ -518,13 +520,13 @@
                     </div>
 
                     <button type="submit" class="whatsapp-checkout-btn" id="whatsappSubmitBtn">
-                        <span class="whatsapp-icon">📱</span> Send Order via WhatsApp
+                        <span class="whatsapp-icon"><i class="fab fa-whatsapp"></i></span> Send Order via WhatsApp
                     </button>
                 </form>
             </div>
 
             <div id="whatsapp-order-success" class="order-success">
-                <div class="success-icon">✓</div>
+                <div class="success-icon"><i class="fas fa-check"></i></div>
                 <div class="success-message">
                     <h2>Order Sent Successfully!</h2>
                     <p>Your order has been sent to WhatsApp</p>

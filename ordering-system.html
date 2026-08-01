@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ordering System - PrintPro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     <style>
         .ordering-container {
@@ -367,9 +368,10 @@
             <ul class="nav-menu">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="products.html">Products</a></li>
+                <li><a href="blog.html">Blog</a></li>
                 <li><a href="about.html">About</a></li>
                 <li><a href="contact.html">Contact</a></li>
-                <li><a href="cart.html" class="cart-link">🛒 Cart <span id="cart-count" class="cart-badge" style="display: none;">0</span></a></li>
+                <li><a href="cart.html" class="cart-link"><i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="cart-badge" style="display: none;">0</span></a></li>
             </ul>
             <div class="hamburger">
                 <span></span>
@@ -547,7 +549,7 @@
 
                 <a href="https://wa.me/2348063758039?text=Hello%20PrintPro,%20I%20would%20like%20to%20place%20an%20order."
                    class="whatsapp-checkout-btn" id="whatsappDirectBtn" target="_blank">
-                    📱 Proceed to WhatsApp Checkout
+                    <i class="fab fa-whatsapp"></i> Proceed to WhatsApp Checkout
                 </a>
 
                 <button class="btn-prev" onclick="goToStep(2)" style="margin-top:10px;">Back to Customize</button>
@@ -557,7 +559,7 @@
         <!-- Order Success -->
         <div class="step-panel" id="panel-step-success">
             <div class="order-success-screen">
-                <div class="success-icon">✓</div>
+                <div class="success-icon"><i class="fas fa-check"></i></div>
                 <h2>Order Placed Successfully!</h2>
                 <p>Your order has been sent via WhatsApp checkout</p>
                 <div class="order-id">Order ID: <span id="successOrderId">-</span></div>
