@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrintPro - Premium Printing Solutions</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h1>PrintPro</h1>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="active">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="cart.html" class="cart-link">🛒 Cart <span id="cart-count" class="cart-badge" style="display: none;">0</span></a></li>
+            </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Premium Printing Solutions</h1>
+            <p>High-quality printing services for all your business needs</p>
+            <a href="products.html" class="btn btn-primary">Shop Now</a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2>Why Choose PrintPro?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Premium Quality</h3>
+                    <p>High-quality materials and professional printing techniques</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Fast Delivery</h3>
+                    <p>Quick turnaround times without compromising quality</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Affordable Prices</h3>
+                    <p>Competitive pricing for all printing services</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤝</div>
+                    <h3>Expert Support</h3>
+                    <p>Dedicated customer support team ready to help</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Products -->
+    <section class="featured-products">
+        <div class="container">
+            <h2>Featured Products</h2>
+            <div id="featured-products-container" class="products-grid"></div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to Print?</h2>
+            <p>Explore our wide range of printing solutions</p>
+            <a href="products.html" class="btn btn-secondary">View All Products</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>PrintPro</h3>
+                    <p>Your trusted printing partner</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="products.html">Products</a></li>
+                        <li><a href="about.html">About</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact Info</h3>
+                    <p>Email: info@printpro.com</p>
+                    <p>Phone: +234 (0) 123 456 789</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Follow Us</h3>
+                    <div class="social-links">
+                        <a href="#" title="Facebook">f</a>
+                        <a href="#" title="Twitter">𝕏</a>
+                        <a href="#" title="Instagram">📷</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 PrintPro. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFeaturedProducts();
+            updateCartCount();
+        });
+
+        function loadFeaturedProducts() {
+            fetch('api/get-products.php?limit=4')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('featured-products-container');
+                    if (data.success && data.products.length > 0) {
+                        container.innerHTML = data.products.map(product => `
+                            <div class="product-card">
+                                <div class="product-image">
+                                    <img src="${product.image || 'img/placeholder.jpg'}" alt="${product.product_name}">
+                                </div>
+                                <div class="product-info">
+                                    <h3>${product.product_name}</h3>
+                                    <p class="price">₦${parseFloat(product.price).toLocaleString()}</p>
+                                    <button class="btn btn-small" onclick="viewProduct(${product.id})">View Details</button>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<p>No products available</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('featured-products-container').innerHTML = '<p>Error loading products</p>';
+                });
+        }
+
+        function viewProduct(productId) {
+            window.location.href = `products.html?id=${productId}`;
+        }
+
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const count = cart.reduce((total, item) => total + item.quantity, 0);
+            const cartBadge = document.getElementById('cart-count');
+            
+            if (count > 0) {
+                cartBadge.textContent = count;
+                cartBadge.style.display = 'inline-block';
+            } else {
+                cartBadge.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
