@@ -52,10 +52,50 @@
                 opacity: 1;
             }
         }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 30px;
+        }
+        .pagination button {
+            padding: 8px 14px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .pagination button:hover:not(:disabled) {
+            background-color: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        .pagination button.active {
+            background-color: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination .page-info {
+            padding: 0 10px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .products-per-page {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="logo">
@@ -76,7 +116,6 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
     <section class="page-hero">
         <div class="page-hero-content">
             <h1>Our Products</h1>
@@ -84,11 +123,9 @@
         </div>
     </section>
 
-    <!-- Products Section -->
     <section class="products-section">
         <div class="container">
             <div class="products-wrapper">
-                <!-- Filters Sidebar -->
                 <aside class="filters-sidebar">
                     <h3>Filter by Category</h3>
                     <div id="category-filters" class="filter-list">
@@ -106,7 +143,6 @@
                     <button class="btn btn-small" onclick="resetFilters()">Reset Filters</button>
                 </aside>
 
-                <!-- Products Grid -->
                 <div class="products-main">
                     <div class="products-header">
                         <div class="sort-container">
@@ -122,12 +158,13 @@
                     <div id="products-container" class="products-grid">
                         <div class="loading">Loading products...</div>
                     </div>
+                    <div class="products-per-page">Showing <span id="showing-start">1</span>–<span id="showing-end">6</span> of <span id="total-products">0</span> products</div>
+                    <div class="pagination" id="pagination-container"></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Modal for Product Details -->
     <div id="productModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -135,7 +172,6 @@
         </div>
     </div>
 
-    <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
@@ -170,23 +206,25 @@
         let filteredProducts = [];
         let selectedCategory = '';
         let maxPrice = 500000;
+        let currentPage = 1;
+        const productsPerPage = 6;
 
         document.addEventListener('DOMContentLoaded', function() {
             loadProducts();
             loadCategories();
             updateCartCount();
-            
-            // Price range event listener
+
             document.getElementById('priceRange').addEventListener('input', function(e) {
                 maxPrice = e.target.value;
                 document.getElementById('priceValue').textContent = maxPrice;
+                currentPage = 1;
                 filterProducts();
             });
 
-            // Category filter
             document.addEventListener('change', function(e) {
                 if (e.target.name === 'category') {
                     selectedCategory = e.target.value;
+                    currentPage = 1;
                     filterProducts();
                 }
             });
@@ -199,7 +237,8 @@
                     if (data.success) {
                         allProducts = data.products;
                         filteredProducts = [...allProducts];
-                        displayProducts(filteredProducts);
+                        currentPage = 1;
+                        displayProducts();
                     }
                 })
                 .catch(error => console.error('Error:', error));
@@ -231,7 +270,8 @@
                 const matchPrice = product.price <= maxPrice;
                 return matchCategory && matchPrice;
             });
-            displayProducts(filteredProducts);
+            currentPage = 1;
+            displayProducts();
         }
 
         function applySort() {
@@ -251,18 +291,32 @@
                 default:
                     sorted.reverse();
             }
+            currentPage = 1;
             displayProducts(sorted);
         }
 
         function displayProducts(products) {
             const container = document.getElementById('products-container');
-            
-            if (products.length === 0) {
+            const data = products || filteredProducts;
+
+            if (data.length === 0) {
                 container.innerHTML = '<p class="no-products">No products found</p>';
+                document.getElementById('showing-start').textContent = '0';
+                document.getElementById('showing-end').textContent = '0';
+                document.getElementById('total-products').textContent = '0';
+                document.getElementById('pagination-container').innerHTML = '';
                 return;
             }
 
-            container.innerHTML = products.map(product => `
+            const totalPages = Math.ceil(data.length / productsPerPage);
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const start = (currentPage - 1) * productsPerPage;
+            const end = Math.min(start + productsPerPage, data.length);
+            const pageProducts = data.slice(start, end);
+
+            container.innerHTML = pageProducts.map(product => `
                 <div class="product-card">
                     <div class="product-image">
                         <img src="${product.image || 'img/placeholder.jpg'}" alt="${product.product_name}" onerror="this.src='img/placeholder.jpg'">
@@ -275,6 +329,37 @@
                     </div>
                 </div>
             `).join('');
+
+            document.getElementById('showing-start').textContent = data.length > 0 ? start + 1 : 0;
+            document.getElementById('showing-end').textContent = end;
+            document.getElementById('total-products').textContent = data.length;
+
+            renderPagination(totalPages);
+        }
+
+        function renderPagination(totalPages) {
+            const container = document.getElementById('pagination-container');
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            html += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>← Prev</button>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+
+            html += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>`;
+
+            container.innerHTML = html;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            displayProducts();
+            document.getElementById('products-container').scrollIntoView({ behavior: 'smooth' });
         }
 
         function viewProductDetails(productId) {
@@ -285,7 +370,7 @@
                         const product = data.product;
                         const modal = document.getElementById('productModal');
                         const modalBody = document.getElementById('modalBody');
-                        
+
                         modalBody.innerHTML = `
                             <div class="product-detail">
                                 <div class="detail-image">
@@ -302,18 +387,18 @@
                                         <input type="number" id="quantityInput" value="1" min="1">
                                         <button onclick="increaseQuantity()">+</button>
                                     </div>
-                                   <button class="btn btn-primary"
-									onclick="addToCart(
-									${product.id},
-									'${product.product_name.replace(/'/g, "\\'")}',
-									${product.price},
-									'${(product.image || '').replace(/'/g, "\\'")}')">
-									Add to Cart
-									</button>
+                                    <button class="btn btn-primary"
+                                        onclick="addToCart(
+                                        ${product.id},
+                                        '${product.product_name.replace(/'/g, "\\'")}',
+                                        ${product.price},
+                                        '${(product.image || '').replace(/'/g, "\\'")}')">
+                                        Add to Cart
+                                    </button>
                                 </div>
                             </div>
                         `;
-                        
+
                         modal.style.display = 'block';
                     }
                 })
@@ -326,8 +411,9 @@
             document.getElementById('priceRange').value = 500000;
             document.getElementById('priceValue').textContent = 500000;
             document.querySelector('input[value=""]').checked = true;
+            currentPage = 1;
             filteredProducts = [...allProducts];
-            displayProducts(filteredProducts);
+            displayProducts();
         }
 
         function increaseQuantity() {
@@ -343,44 +429,39 @@
         }
 
         function addToCart(id, name, price, image) {
-    const quantity = parseInt(document.getElementById('quantityInput').value);
+            const quantity = parseInt(document.getElementById('quantityInput').value);
 
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-    const existingItem = cart.find(item => item.id === id);
+            const existingItem = cart.find(item => item.id === id);
 
-    if (existingItem) {
-        existingItem.quantity += quantity;
+            if (existingItem) {
+                existingItem.quantity += quantity;
+                if (!existingItem.image && image) {
+                    existingItem.image = image;
+                }
+            } else {
+                cart.push({
+                    id: id,
+                    name: name,
+                    price: price,
+                    image: image,
+                    quantity: quantity
+                });
+            }
 
-        // Update image if missing
-        if (!existingItem.image && image) {
-            existingItem.image = image;
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+            showNotification(`${quantity} × "${name}" added to cart!`);
+            document.getElementById('productModal').style.display = 'none';
         }
-    } else {
-        cart.push({
-            id: id,
-            name: name,
-            price: price,
-            image: image,
-            quantity: quantity
-        });
-    }
-
-    localStorage.setItem('cart', JSON.stringify(cart));
-
-    updateCartCount();
-
-    showNotification(`${quantity} × "${name}" added to cart!`);
-
-    document.getElementById('productModal').style.display = 'none';
-}
 
         function showNotification(message) {
             const notification = document.createElement('div');
             notification.className = 'cart-notification';
             notification.textContent = message;
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.remove();
             }, 3000);
@@ -390,7 +471,7 @@
             const cart = JSON.parse(localStorage.getItem('cart')) || [];
             const count = cart.reduce((total, item) => total + item.quantity, 0);
             const cartBadge = document.getElementById('cart-count');
-            
+
             if (count > 0) {
                 cartBadge.textContent = count;
                 cartBadge.style.display = 'inline-block';
@@ -399,10 +480,9 @@
             }
         }
 
-        // Modal close
         const modal = document.getElementById('productModal');
         const closeBtn = document.querySelector('.close');
-        
+
         closeBtn.onclick = function() {
             modal.style.display = 'none';
         }
