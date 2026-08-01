@@ -51,8 +51,6 @@ function getPosts()
         'limit' => $limit,
         'offset' => $offset
     ]);
-
-    $stmt->close();
 }
 
 function getPost()
@@ -81,7 +79,6 @@ function getPost()
 
     $post = $result->fetch_assoc();
     sendResponse(true, 'Post retrieved', ['post' => $post]);
-    $stmt->close();
 }
 
 function getPostsByCategory()
@@ -109,7 +106,6 @@ function getPostsByCategory()
     }
 
     sendResponse(true, 'Posts retrieved', ['posts' => $posts]);
-    $stmt->close();
 }
 
 function sendResponse($success, $message, $data = [])

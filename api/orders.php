@@ -5,7 +5,7 @@
  */
 
 header('Content-Type: application/json');
-require_once 'config.php';
+require_once '../config.php';
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
