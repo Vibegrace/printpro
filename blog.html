@@ -20,6 +20,7 @@
                 <li><a href="about.html">About</a></li>
                 <li><a href="contact.html">Contact</a></li>
                 <li><a href="cart.html" class="cart-link"><i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="cart-badge" style="display: none;">0</span></a></li>
+                <li><a href="login.html"><i class="fas fa-sign-in-alt"></i> Login</a></li>
             </ul>
             <div class="hamburger">
                 <span></span>
@@ -43,6 +44,7 @@
             <li><a href="about.html"><i class="fas fa-info-circle"></i> About</a></li>
             <li><a href="contact.html"><i class="fas fa-envelope"></i> Contact</a></li>
             <li><a href="cart.html"><i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="cart-badge" style="display: none;">0</span></a></li>
+            <li><a href="login.html"><i class="fas fa-sign-in-alt"></i> Login</a></li>
         </ul>
     </aside>
 
@@ -131,7 +133,7 @@
                                     <p>${post.description ? post.description.substring(0, 150) + '...' : 'No description available.'}</p>
                                     <div class="blog-footer">
                                         <span class="blog-price"><i class="fas fa-tag"></i> ₦${parseFloat(post.price).toLocaleString()}</span>
-                                        <a href="products.html" class="btn btn-small">Read More</a>
+                                        <a href="blog-detail.html?id=${post.id}" class="btn btn-small">Read More</a>
                                     </div>
                                 </div>
                             </article>
