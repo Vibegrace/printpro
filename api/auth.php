@@ -186,7 +186,7 @@ function handleForgetPassword()
     $stmtToken->execute();
     $stmtToken->close();
 
-    $resetLink = 'https://www.printpro.com/reset-password?token=' . $token;
+    $resetLink = 'https://www.printsiv.com/reset-password?token=' . $token;
 
     try {
         $mail = new PHPMailer(true);
@@ -199,16 +199,16 @@ function handleForgetPassword()
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
 
-        $mail->setFrom('yourgmail@gmail.com', 'PrintPro');
+        $mail->setFrom('yourgmail@gmail.com', 'Printsiv');
         $mail->addAddress($email, $user['first_name'] . ' ' . $user['last_name']);
 
         $mail->isHTML(true);
-        $mail->Subject = 'PrintPro - Password Reset Request';
+        $mail->Subject = 'Printsiv - Password Reset Request';
 
         $mail->Body = "
             <h2>Password Reset Request</h2>
             <p>Hello {$user['first_name']},</p>
-            <p>We received a request to reset your PrintPro account password.</p>
+            <p>We received a request to reset your Printsiv account password.</p>
             <p>Click the link below to reset your password:</p>
             <p><a href='{$resetLink}' style='color:#3498db;'>Reset Password</a></p>
             <p>This link expires in 1 hour.</p>

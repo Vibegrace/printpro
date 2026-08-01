@@ -25,7 +25,7 @@ try {
     }
 
     // Prepare email
-    $to = "info@printpro.com";
+    $to = "info@printsiv.com";
     $email_subject = "New Contact Form Submission: " . $subject;
     
     $email_body = "New contact form submission:\n\n";

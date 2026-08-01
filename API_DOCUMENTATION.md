@@ -1,4 +1,4 @@
-# PrintPro E-Commerce System - Database & API Documentation
+# Printsiv E-Commerce System - Database & API Documentation
 
 ## 📋 Table of Contents
 - [Overview](#overview)
@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-PrintPro is a full-featured e-commerce system for printing services. This documentation covers the backend database structure and API endpoints used for order processing, management, and analytics.
+Printsiv is a full-featured e-commerce system for printing services. This documentation covers the backend database structure and API endpoints used for order processing, management, and analytics.
 
 ### Key Features
 - ✅ Order Management System
@@ -56,7 +56,7 @@ Edit `api/config.php`:
 define('DB_HOST', 'localhost');      // Your database host
 define('DB_USER', 'root');           // Your database user
 define('DB_PASSWORD', '');           // Your database password
-define('DB_NAME', 'printpro_db');    // Database name
+define('DB_NAME', 'printsiv_db');    // Database name
 ```
 
 ### Step 3: Verify Installation
@@ -631,7 +631,7 @@ api/analytics.php?action=customer_analytics&limit=10
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
 define('DB_PASSWORD', '');
-define('DB_NAME', 'printpro_db');
+define('DB_NAME', 'printsiv_db');
 
 // Create connection
 $conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
@@ -667,7 +667,7 @@ For production, use PHPMailer or similar library.
 ### Step 1: Import Database
 
 ```bash
-mysql -u root -p printpro_db < database/setup.sql
+mysql -u root -p printsiv_db < database/setup.sql
 ```
 
 ### Step 2: Configure Credentials
@@ -903,7 +903,7 @@ CREATE TABLE products (
 
 ## 📞 Support
 
-- **Email:** info@printpro.com
+- **Email:** info@printsiv.com
 - **Phone:** +234 (0) 123 456 789
 - **Documentation:** See `API_DOCUMENTATION.md`
 
@@ -920,4 +920,4 @@ CREATE TABLE products (
 
 ## 📄 License
 
-Copyright © 2026 PrintPro. All rights reserved.
+Copyright © 2026 Printsiv. All rights reserved.

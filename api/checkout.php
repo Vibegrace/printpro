@@ -212,7 +212,7 @@ function sendResponse($success, $message, $data = [])
 ========================= */
 function sendConfirmationEmail($email, $name, $order_id, $items, $total)
 {
-    $baseUrl = 'https://www.printsav.com.ng/';
+    $baseUrl = 'https://www.printsiv.com.ng/';
 
     $mail = new PHPMailer(true);
 
@@ -226,7 +226,7 @@ function sendConfirmationEmail($email, $name, $order_id, $items, $total)
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
 
-        $mail->setFrom('yourgmail@gmail.com', 'PrintSav');
+        $mail->setFrom('yourgmail@gmail.com', 'Printsiv');
         $mail->addAddress($email, $name);
 
         $mail->isHTML(true);

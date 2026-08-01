@@ -1,9 +1,9 @@
--- PrintPro Database Setup Script
--- Run this SQL to create all required tables for the PrintPro e-commerce system
+-- Printsiv Database Setup Script
+-- Run this SQL to create all required tables for the Printsiv e-commerce system
 
 -- Create database
-CREATE DATABASE IF NOT EXISTS printpro_db;
-USE printpro_db;
+CREATE DATABASE IF NOT EXISTS printsiv_db;
+USE printsiv_db;
 
 -- Drop existing tables if they exist (for fresh setup)
 DROP TABLE IF EXISTS password_resets;

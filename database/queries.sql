@@ -1,4 +1,4 @@
--- PrintPro Database - Order Management Queries
+-- Printsiv Database - Order Management Queries
 -- Useful queries for managing orders and analyzing sales
 
 -- ========================
@@ -196,7 +196,7 @@ AND created_at < DATE_SUB(NOW(), INTERVAL 1 YEAR);
 SELECT 
     ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as size_mb
 FROM information_schema.tables
-WHERE table_schema = 'printpro_db';
+WHERE table_schema = 'printsiv_db';
 
 -- Optimize tables
 OPTIMIZE TABLE orders;
