@@ -128,8 +128,8 @@
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('blog-detail-container');
-                    if (data.success && data.post) {
-                        renderBlogDetail(data.post);
+                    if (data.success && data.data && data.data.post) {
+                        renderBlogDetail(data.data.post);
                     } else {
                         container.innerHTML = `
                             <div style="text-align:center;padding:60px 20px;">
@@ -203,8 +203,8 @@
                 .then(response => response.json())
                 .then(data => {
                     const container = document.getElementById('related-products-container');
-                    if (data.success && data.posts.length > 0) {
-                        const related = data.posts.filter(p => p.id !== excludeId).slice(0, 6);
+                    if (data.success && data.data && data.data.posts && data.data.posts.length > 0) {
+                        const related = data.data.posts.filter(p => p.id !== excludeId).slice(0, 6);
                         if (related.length === 0) {
                             container.innerHTML = '<p style="text-align:center;color:#666;grid-column:1/-1;">No related products found</p>';
                             return;
