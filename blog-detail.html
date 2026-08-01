@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Detail - PrintPro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h1>PrintPro</h1>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="blog.html">Blog</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="cart.html" class="cart-link"><i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="cart-badge" style="display: none;">0</span></a></li>
+            </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <section class="page-hero">
+        <div class="page-hero-content">
+            <h1>Blog Detail</h1>
+            <p>In-depth look at our printing products</p>
+        </div>
+    </section>
+
+    <section class="blog-detail-section">
+        <div class="container">
+            <div id="blog-detail-container">
+                <div class="loading"><div class="spinner"></div><p>Loading article...</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="related-products">
+        <div class="container">
+            <h2>Related Products</h2>
+            <div id="related-products-container" class="products-grid">
+                <div class="loading">Loading related products...</div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>PrintPro</h3>
+                    <p>Your trusted printing partner</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="products.html">Products</a></li>
+                        <li><a href="blog.html">Blog</a></li>
+                        <li><a href="about.html">About</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact Info</h3>
+                    <p>Email: info@printpro.com</p>
+                    <p>Phone: +234 (0) 123 456 789</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 PrintPro. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        let currentPostId = 0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBlogDetail();
+            updateCartCount();
+        });
+
+        function loadBlogDetail() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const postId = urlParams.get('id');
+
+            if (!postId) {
+                document.getElementById('blog-detail-container').innerHTML = `
+                    <div style="text-align:center;padding:60px 20px;">
+                        <h2>Article Not Found</h2>
+                        <p>No product ID was specified.</p>
+                        <a href="blog.html" class="btn btn-primary">Back to Blog</a>
+                    </div>`;
+                return;
+            }
+
+            currentPostId = parseInt(postId);
+
+            fetch('api/blog.php?action=get_post&id=' + postId)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('blog-detail-container');
+                    if (data.success && data.post) {
+                        renderBlogDetail(data.post);
+                    } else {
+                        container.innerHTML = `
+                            <div style="text-align:center;padding:60px 20px;">
+                                <h2>Article Not Found</h2>
+                                <p>The requested article could not be found.</p>
+                                <a href="blog.html" class="btn btn-primary">Back to Blog</a>
+                            </div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('blog-detail-container').innerHTML = `
+                        <div style="text-align:center;padding:60px 20px;">
+                            <h2>Error Loading Article</h2>
+                            <p>Please try again later.</p>
+                            <a href="blog.html" class="btn btn-primary">Back to Blog</a>
+                        </div>`;
+                });
+        }
+
+        function renderBlogDetail(post) {
+            const container = document.getElementById('blog-detail-container');
+            const image = post.image || 'img/placeholder.jpg';
+            const price = parseFloat(post.price).toLocaleString();
+            const date = new Date(post.created_at).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'long', day: 'numeric'
+            });
+
+            container.innerHTML = `
+                <article class="blog-detail-article">
+                    <div class="blog-detail-image">
+                        <img src="${image}" alt="${post.product_name}" onerror="this.src='img/placeholder.jpg'">
+                    </div>
+                    <div class="blog-detail-content">
+                        <div class="blog-detail-meta">
+                            <span><i class="fas fa-folder"></i> ${post.category_name || 'Uncategorized'}</span>
+                            <span><i class="fas fa-calendar"></i> ${date}</span>
+                            <span><i class="fas fa-tag"></i> ${post.product_name}</span>
+                        </div>
+                        <h1>${post.product_name}</h1>
+                        <div class="blog-detail-price">
+                            <span class="price-tag">₦${price}</span>
+                        </div>
+                        <div class="blog-detail-body">
+                            <p>${post.description || 'No detailed description available for this product.'}</p>
+                        </div>
+                        <div class="blog-detail-specs">
+                            <h3>Product Specifications</h3>
+                            <ul>
+                                <li><strong>Product Name:</strong> ${post.product_name}</li>
+                                <li><strong>Category:</strong> ${post.category_name || 'Uncategorized'}</li>
+                                <li><strong>Price:</strong> ₦${price}</li>
+                                <li><strong>Stock:</strong> ${post.stock_quantity || 'N/A'} units</li>
+                                <li><strong>Status:</strong> ${post.status === 'active' ? 'Available' : 'Unavailable'}</li>
+                            </ul>
+                        </div>
+                        <div class="blog-detail-actions">
+                            <a href="cart.html" class="btn btn-primary"><i class="fas fa-shopping-cart"></i> Add to Cart</a>
+                            <a href="ordering-system.html" class="btn btn-secondary"><i class="fas fa-shopping-bag"></i> Order Now</a>
+                            <a href="blog.html" class="btn btn-small"><i class="fas fa-arrow-left"></i> Back to Blog</a>
+                        </div>
+                    </div>
+                </article>
+            `;
+
+            loadRelatedProducts(post.category_id, post.id);
+        }
+
+        function loadRelatedProducts(categoryId, excludeId) {
+            fetch('api/blog.php?action=get_posts_by_category&category_id=' + categoryId)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('related-products-container');
+                    if (data.success && data.posts.length > 0) {
+                        const related = data.posts.filter(p => p.id !== excludeId).slice(0, 6);
+                        if (related.length === 0) {
+                            container.innerHTML = '<p style="text-align:center;color:#666;grid-column:1/-1;">No related products found</p>';
+                            return;
+                        }
+                        container.innerHTML = related.map(post => `
+                            <div class="product-card">
+                                <div class="product-image">
+                                    <img src="${post.image || 'img/placeholder.jpg'}" alt="${post.product_name}" onerror="this.src='img/placeholder.jpg'">
+                                </div>
+                                <div class="product-info">
+                                    <h3>${post.product_name}</h3>
+                                    <p class="category">${post.category_name || 'Uncategorized'}</p>
+                                    <p class="price">₦${parseFloat(post.price).toLocaleString()}</p>
+                                    <a href="blog-detail.html?id=${post.id}" class="btn btn-small">Read More</a>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<p style="text-align:center;color:#666;grid-column:1/-1;">No related products found</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('related-products-container').innerHTML = '<p>Error loading related products</p>';
+                });
+        }
+    </script>
+</body>
+</html>

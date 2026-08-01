@@ -87,7 +87,7 @@
                     const container = document.getElementById('blog-grid');
                     if (data.success && data.posts.length > 0) {
                         container.innerHTML = data.posts.map(post => `
-                            <article class="blog-card">
+                            <article class="blog-card" onclick="window.location.href='blog-detail.html?id=${post.id}'" style="cursor:pointer;">
                                 <div class="blog-image">
                                     <img src="${post.image || 'img/placeholder.jpg'}" alt="${post.title}" onerror="this.src='img/placeholder.jpg'">
                                 </div>
