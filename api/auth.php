@@ -66,7 +66,7 @@ function handleSignup()
     $sql = "INSERT INTO customers (email, phone, first_name, last_name, address, city, state, password, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('sssssss', $email, $phone, $firstName, $lastName, $address, $city, $state, $password);
+    $stmt->bind_param('ssssssss', $email, $phone, $firstName, $lastName, $address, $city, $state, $password);
 
     if ($stmt->execute()) {
         $userId = $conn->insert_id;
