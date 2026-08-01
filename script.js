@@ -1,24 +1,52 @@
-// Mobile Menu Toggle
+// Mobile Sidebar Toggle
 const hamburger = document.querySelector('.hamburger');
-const navMenu = document.querySelector('.nav-menu');
+const mobileSidebar = document.querySelector('.mobile-sidebar');
+const sidebarOverlay = document.querySelector('.sidebar-overlay');
 
-if (hamburger) {
+if (hamburger && mobileSidebar) {
     hamburger.addEventListener('click', function() {
-        navMenu.classList.toggle('active');
+        hamburger.classList.toggle('active');
+        mobileSidebar.classList.toggle('active');
+        if (sidebarOverlay) {
+            sidebarOverlay.classList.toggle('active');
+        }
     });
 
-    // Close menu when link is clicked
-    document.querySelectorAll('.nav-menu a').forEach(link => {
+    // Close sidebar when a link is clicked
+    mobileSidebar.querySelectorAll('.sidebar-nav a').forEach(link => {
         link.addEventListener('click', function() {
-            navMenu.classList.toggle('active');
+            hamburger.classList.remove('active');
+            mobileSidebar.classList.remove('active');
+            if (sidebarOverlay) {
+                sidebarOverlay.classList.remove('active');
+            }
         });
     });
+
+    // Close sidebar when clicking overlay
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', function() {
+            hamburger.classList.remove('active');
+            mobileSidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+        });
+    }
 }
 
 // Set active nav link
 document.addEventListener('DOMContentLoaded', function() {
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     document.querySelectorAll('.nav-menu a').forEach(link => {
+        const href = link.getAttribute('href');
+        if (href === currentPage) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+
+    // Also mark active in sidebar
+    document.querySelectorAll('.sidebar-nav a').forEach(link => {
         const href = link.getAttribute('href');
         if (href === currentPage) {
             link.classList.add('active');
