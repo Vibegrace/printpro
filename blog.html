@@ -80,6 +80,19 @@
             updateCartCount();
         });
 
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const count = cart.reduce((total, item) => total + item.quantity, 0);
+            const cartBadge = document.getElementById('cart-count');
+
+            if (count > 0) {
+                cartBadge.textContent = count;
+                cartBadge.style.display = 'inline-block';
+            } else {
+                cartBadge.style.display = 'none';
+            }
+        }
+
         function loadBlogPosts() {
             fetch('api/blog.php')
                 .then(response => response.json())
