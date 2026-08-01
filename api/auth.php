@@ -63,20 +63,13 @@ function handleSignup()
         sendResponse(false, 'An account with this email already exists');
     }
 
-    $sql = "INSERT INTO customers (email, phone, first_name, last_name, address, city, state, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+    $sql = "INSERT INTO customers (email, phone, first_name, last_name, address, city, state, password, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('sssssss', $email, $phone, $firstName, $lastName, $address, $city, $state);
+    $stmt->bind_param('sssssss', $email, $phone, $firstName, $lastName, $address, $city, $state, $password);
 
     if ($stmt->execute()) {
         $userId = $conn->insert_id;
-
-        $token = bin2hex(random_bytes(32));
-        $sqlToken = "INSERT INTO password_resets (email, token, created_at) VALUES (?, ?, NOW())";
-        $stmtToken = $conn->prepare($sqlToken);
-        $stmtToken->bind_param('ss', $email, $token);
-        $stmtToken->execute();
-        $stmtToken->close();
 
         sendResponse(true, 'Account created successfully', [
             'user' => [
