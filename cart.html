@@ -202,71 +202,58 @@
             background-color: #2980b9;
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
+        .whatsapp-checkout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
             width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.4);
-            overflow-y: auto;
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 5% auto;
-            padding: 30px;
-            border: 1px solid #888;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
-        }
-
-        .modal-header {
-            font-size: 22px;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-
-        .close-modal {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
+            padding: 15px;
+            background-color: #25D366;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
+            margin-top: 15px;
+            text-decoration: none;
+            transition: all 0.3s ease;
         }
 
-        .close-modal:hover {
-            color: #000;
+        .whatsapp-checkout-btn:hover {
+            background-color: #1da851;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
         }
 
-        .form-group {
-            margin-bottom: 15px;
+        .whatsapp-checkout-btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
-        .form-group label {
+        .whatsapp-checkout-btn .whatsapp-icon {
+            font-size: 20px;
+        }
+
+        .checkout-form-container {
+            display: none;
+        }
+
+        .checkout-form-container.active {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
         }
 
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
+        .whatsapp-section {
+            text-align: center;
+            padding: 20px;
         }
 
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+        .whatsapp-section p {
+            margin: 10px 0;
+            color: #555;
         }
 
         .order-success {
@@ -458,20 +445,20 @@
                         <span>Total:</span>
                         <span>₦<span id="total">0.00</span></span>
                     </div>
-                    <button class="checkout-btn" onclick="openCheckoutModal()" id="checkout-btn">Proceed to Checkout</button>
+                    <button class="checkout-btn" onclick="openWhatsAppCheckout()" id="checkout-btn">Proceed to WhatsApp Checkout</button>
                     <a href="products.html" class="continue-shopping-btn">Continue Shopping</a>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Checkout Modal -->
-    <div id="checkoutModal" class="modal">
+    <!-- WhatsApp Checkout Modal -->
+    <div id="whatsappCheckoutModal" class="modal">
         <div class="modal-content">
-            <span class="close-modal" onclick="closeCheckoutModal()">&times;</span>
-            
-            <div id="checkout-form-container">
-                <div class="modal-header">Checkout</div>
+            <span class="close-modal" onclick="closeWhatsAppCheckout()">&times;</span>
+
+            <div id="whatsapp-checkout-form-container" class="checkout-form-container active">
+                <div class="modal-header">WhatsApp Checkout</div>
 
                 <div class="error-message" id="errorMessage"></div>
                 <div class="success-notification" id="successMessage"></div>
@@ -481,41 +468,47 @@
                     <p>Processing your order...</p>
                 </div>
 
-                <form id="checkoutForm" onsubmit="submitOrder(event)">
+                <div class="whatsapp-section">
+                    <p>📱 Complete your order by sending your details via WhatsApp</p>
+                    <p><strong>Order Summary:</strong></p>
+                    <div id="whatsapp-order-summary" style="text-align:left;margin:10px 0;"></div>
+                </div>
+
+                <form id="whatsappCheckoutForm" onsubmit="submitWhatsAppOrder(event)">
                     <div class="form-group">
-                        <label for="fullName">Full Name *</label>
-                        <input type="text" id="fullName" name="fullName" required>
+                        <label for="whatsappName">Full Name *</label>
+                        <input type="text" id="whatsappName" name="fullName" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="email">Email Address *</label>
-                        <input type="email" id="email" name="email" required>
+                        <label for="whatsappPhone">WhatsApp Phone Number *</label>
+                        <input type="tel" id="whatsappPhone" name="phone" placeholder="+234..." required>
                     </div>
 
                     <div class="form-group">
-                        <label for="phone">Phone Number *</label>
-                        <input type="tel" id="phone" name="phone" required>
+                        <label for="whatsappEmail">Email Address *</label>
+                        <input type="email" id="whatsappEmail" name="email" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="address">Delivery Address *</label>
-                        <textarea id="address" name="address" rows="3" required></textarea>
+                        <label for="whatsappAddress">Delivery Address *</label>
+                        <textarea id="whatsappAddress" name="address" rows="3" required></textarea>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="city">City *</label>
-                            <input type="text" id="city" name="city" required>
+                            <label for="whatsappCity">City *</label>
+                            <input type="text" id="whatsappCity" name="city" required>
                         </div>
                         <div class="form-group">
-                            <label for="state">State *</label>
-                            <input type="text" id="state" name="state" required>
+                            <label for="whatsappState">State *</label>
+                            <input type="text" id="whatsappState" name="state" required>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="paymentMethod">Payment Method *</label>
-                        <select id="paymentMethod" name="paymentMethod" required>
+                        <label for="whatsappPayment">Payment Method *</label>
+                        <select id="whatsappPayment" name="paymentMethod" required>
                             <option value="">Select Payment Method</option>
                             <option value="bank_transfer">Bank Transfer</option>
                             <option value="card">Credit/Debit Card</option>
@@ -524,25 +517,20 @@
                         </select>
                     </div>
 
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="terms" name="terms" required>
-                            I agree to the terms and conditions
-                        </label>
-                    </div>
-
-                    <button type="submit" class="checkout-btn" style="margin-top: 0;" id="submitBtn">Complete Order</button>
+                    <button type="submit" class="whatsapp-checkout-btn" id="whatsappSubmitBtn">
+                        <span class="whatsapp-icon">📱</span> Send Order via WhatsApp
+                    </button>
                 </form>
             </div>
 
-            <div id="order-success-container" class="order-success">
+            <div id="whatsapp-order-success" class="order-success">
                 <div class="success-icon">✓</div>
                 <div class="success-message">
-                    <h2>Order Placed Successfully!</h2>
-                    <p>Thank you for your purchase</p>
-                    <div class="order-id">Order ID: <span id="orderIdDisplay"></span></div>
-                    <p>We'll send you a confirmation email shortly with tracking information.</p>
-                    <button class="checkout-btn" onclick="completeCheckout()" style="margin-top: 0;">Done</button>
+                    <h2>Order Sent Successfully!</h2>
+                    <p>Your order has been sent to WhatsApp</p>
+                    <div class="order-id">Order ID: <span id="whatsappOrderIdDisplay"></span></div>
+                    <p>Our team will contact you on WhatsApp shortly to confirm your order.</p>
+                    <button class="checkout-btn" onclick="completeWhatsAppCheckout()" style="margin-top: 0;">Done</button>
                 </div>
             </div>
         </div>
@@ -586,18 +574,17 @@
             updateCartCount();
         });
 
-       function loadCart() {
-    cart = JSON.parse(localStorage.getItem('cart')) || [];
+        function loadCart() {
+            cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-    // Fix older cart items that don't have image property
-    cart = cart.map(item => ({
-        ...item,
-        image: item.image || 'img/placeholder.jpg'
-    }));
+            cart = cart.map(item => ({
+                ...item,
+                image: item.image || 'img/placeholder.jpg'
+            }));
 
-    saveCart();
-    displayCart();
-}
+            saveCart();
+            displayCart();
+        }
 
         function displayCart() {
             const emptyState = document.getElementById('cart-empty-state');
@@ -615,9 +602,9 @@
             const cartItemsList = document.getElementById('cart-items-list');
             cartItemsList.innerHTML = cart.map((item, index) => `
                 <div class="cart-item">
-                  <img src="${item.image || 'img/placeholder.jpg'}" 
-				  alt="${item.name}"
-				  class="cart-item-image">
+                    <img src="${item.image || 'img/placeholder.jpg'}"
+                         alt="${item.name}"
+                         class="cart-item-image">
                     <div class="cart-item-details">
                         <h3>${item.name}</h3>
                         <p class="item-price">₦${parseFloat(item.price).toLocaleString()}</p>
@@ -676,7 +663,7 @@
         function updateCartCount() {
             const count = cart.reduce((total, item) => total + item.quantity, 0);
             const cartBadge = document.getElementById('cart-count');
-            
+
             if (count > 0) {
                 cartBadge.textContent = count;
                 cartBadge.style.display = 'inline-block';
@@ -693,18 +680,45 @@
 
             document.getElementById('subtotal').textContent = subtotal.toLocaleString();
             document.getElementById('tax').textContent = tax.toLocaleString();
+            document.getElementById('shipping').textContent = shipping.toLocaleString();
             document.getElementById('total').textContent = total.toLocaleString();
         }
 
-        function openCheckoutModal() {
-            document.getElementById('checkoutModal').style.display = 'block';
+        function openWhatsAppCheckout() {
+            if (cart.length === 0) {
+                alert('Your cart is empty. Please add items before checkout.');
+                return;
+            }
+
+            const subtotal = cart.reduce((total, item) => total + (parseFloat(item.price) * item.quantity), 0);
+            const tax = subtotal * 0.05;
+            const shipping = 500;
+            const total = subtotal + tax + shipping;
+
+            const summaryHtml = cart.map(item =>
+                `${item.name} x ${item.quantity} — ₦${(parseFloat(item.price) * item.quantity).toLocaleString()}`
+            ).join('<br>');
+
+            document.getElementById('whatsapp-order-summary').innerHTML =
+                summaryHtml +
+                `<hr style="margin:10px 0;border:none;border-top:1px solid #ddd;">` +
+                `Subtotal: ₦${subtotal.toLocaleString()}<br>` +
+                `Tax (5%): ₦${tax.toLocaleString()}<br>` +
+                `Shipping: ₦${shipping.toLocaleString()}<br>` +
+                `<strong>Total: ₦${total.toLocaleString()}</strong>`;
+
+            document.getElementById('whatsappCheckoutModal').style.display = 'block';
+            document.getElementById('whatsapp-checkout-form-container').classList.add('active');
+            document.getElementById('whatsapp-order-success').classList.remove('show');
+            document.getElementById('whatsappCheckoutForm').reset();
+            hideMessages();
         }
 
-        function closeCheckoutModal() {
-            document.getElementById('checkoutModal').style.display = 'none';
-            document.getElementById('checkout-form-container').style.display = 'block';
-            document.getElementById('order-success-container').classList.remove('show');
-            document.getElementById('checkoutForm').reset();
+        function closeWhatsAppCheckout() {
+            document.getElementById('whatsappCheckoutModal').style.display = 'none';
+            document.getElementById('whatsapp-checkout-form-container').classList.add('active');
+            document.getElementById('whatsapp-order-success').classList.remove('show');
+            document.getElementById('whatsappCheckoutForm').reset();
             hideMessages();
         }
 
@@ -728,35 +742,62 @@
             document.getElementById('successMessage').style.display = 'none';
         }
 
-        function submitOrder(event) {
+        function submitWhatsAppOrder(event) {
             event.preventDefault();
 
-            // Validate cart
             if (cart.length === 0) {
-                showError('Your cart is empty. Please add items before checkout.');
+                showError('Your cart is empty.');
                 return;
             }
 
-            // Show loading spinner
+            const phone = document.getElementById('whatsappPhone').value.trim();
+            const name = document.getElementById('whatsappName').value.trim();
+            const email = document.getElementById('whatsappEmail').value.trim();
+            const address = document.getElementById('whatsappAddress').value.trim();
+            const city = document.getElementById('whatsappCity').value.trim();
+            const state = document.getElementById('whatsappState').value.trim();
+            const paymentMethod = document.getElementById('whatsappPayment').value;
+
+            if (!phone || !name || !email || !address || !city || !state || !paymentMethod) {
+                showError('Please fill in all required fields');
+                return;
+            }
+
+            if (!/^[0-9+\-\s()]+$/.test(phone)) {
+                showError('Invalid phone number');
+                return;
+            }
+
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError('Invalid email address');
+                return;
+            }
+
             document.getElementById('loadingSpinner').style.display = 'block';
-            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('whatsappSubmitBtn').disabled = true;
+
+            const subtotal = cart.reduce((total, item) => total + (parseFloat(item.price) * item.quantity), 0);
+            const tax = subtotal * 0.05;
+            const shipping = 500;
+            const total = subtotal + tax + shipping;
+            const orderId = 'ORD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
 
             const formData = new FormData();
-            formData.append('action', 'create_order');
-            formData.append('fullName', document.getElementById('fullName').value);
-            formData.append('email', document.getElementById('email').value);
-            formData.append('phone', document.getElementById('phone').value);
-            formData.append('address', document.getElementById('address').value);
-            formData.append('city', document.getElementById('city').value);
-            formData.append('state', document.getElementById('state').value);
-            formData.append('paymentMethod', document.getElementById('paymentMethod').value);
+            formData.append('action', 'whatsapp_checkout');
+            formData.append('order_id', orderId);
+            formData.append('fullName', name);
+            formData.append('email', email);
+            formData.append('phone', phone);
+            formData.append('address', address);
+            formData.append('city', city);
+            formData.append('state', state);
+            formData.append('paymentMethod', paymentMethod);
             formData.append('cart', JSON.stringify(cart));
-            formData.append('subtotal', parseFloat(document.getElementById('subtotal').textContent.replace(/,/g, '')));
-            formData.append('tax', parseFloat(document.getElementById('tax').textContent.replace(/,/g, '')));
-            formData.append('shipping', 500);
-            formData.append('total', parseFloat(document.getElementById('total').textContent.replace(/,/g, '')));
+            formData.append('subtotal', subtotal);
+            formData.append('tax', tax);
+            formData.append('shipping', shipping);
+            formData.append('total', total);
 
-            // Send AJAX request
             fetch('api/checkout.php', {
                 method: 'POST',
                 body: formData
@@ -764,14 +805,13 @@
             .then(response => response.json())
             .then(data => {
                 document.getElementById('loadingSpinner').style.display = 'none';
-                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('whatsappSubmitBtn').disabled = false;
 
                 if (data.success) {
-                    // Display success screen
-                    document.getElementById('orderIdDisplay').textContent = data.order_id;
-                    document.getElementById('checkout-form-container').style.display = 'none';
-                    document.getElementById('order-success-container').classList.add('show');
-                    showSuccess('Order saved successfully!');
+                    document.getElementById('whatsappOrderIdDisplay').textContent = orderId;
+                    document.getElementById('whatsapp-checkout-form-container').classList.remove('active');
+                    document.getElementById('whatsapp-order-success').classList.add('show');
+                    showSuccess('Order sent via WhatsApp successfully!');
                 } else {
                     showError(data.message || 'An error occurred. Please try again.');
                 }
@@ -779,22 +819,17 @@
             .catch(error => {
                 console.error('Error:', error);
                 document.getElementById('loadingSpinner').style.display = 'none';
-                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('whatsappSubmitBtn').disabled = false;
                 showError('Network error. Please check your connection and try again.');
             });
         }
 
-        function completeCheckout() {
-            // Clear cart
+        function completeWhatsAppCheckout() {
             cart = [];
             saveCart();
             updateCartCount();
-
-            // Close modal and redirect
-            closeCheckoutModal();
+            closeWhatsAppCheckout();
             displayCart();
-
-            // Show completion message
             showNotification('✓ Order completed! Thank you for your purchase.');
         }
 
@@ -804,17 +839,16 @@
             notification.style.backgroundColor = '#27ae60';
             notification.textContent = message;
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.remove();
             }, 4000);
         }
 
-        // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('checkoutModal');
+            const modal = document.getElementById('whatsappCheckoutModal');
             if (event.target == modal) {
-                closeCheckoutModal();
+                closeWhatsAppCheckout();
             }
         }
     </script>

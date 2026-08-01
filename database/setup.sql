@@ -6,6 +6,8 @@ CREATE DATABASE IF NOT EXISTS printpro_db;
 USE printpro_db;
 
 -- Drop existing tables if they exist (for fresh setup)
+DROP TABLE IF EXISTS password_resets;
+DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS products;
@@ -50,6 +52,34 @@ CREATE TABLE customers (
     address TEXT,
     city VARCHAR(50),
     state VARCHAR(50),
+    password VARCHAR(255),
+    role ENUM('user', 'admin') DEFAULT 'user',
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_email (email)
+);
+
+-- Create password_resets table
+CREATE TABLE password_resets (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(100) NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_token (token),
+    INDEX idx_email (email)
+);
+
+-- Create users table (for admin users)
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
+    role ENUM('admin', 'manager') DEFAULT 'admin',
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_email (email)
