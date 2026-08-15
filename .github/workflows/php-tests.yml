@@ -1,0 +1,108 @@
+name: PHP Tests
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+permissions:
+  contents: read
+
+jobs:
+  php-tests:
+    name: PHP ${{ matrix.php-version }} checks
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.1', '8.2', '8.3']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mysqli, mbstring, json
+          coverage: none
+
+      - name: PHP version
+        run: php -v
+
+      - name: PHP syntax check
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          while IFS= read -r -d '' file; do
+            if ! php -l "$file"; then
+              failed=1
+            fi
+          done < <(find . -type f -name '*.php' \
+            -not -path './.git/*' \
+            -not -path './vendor/*' \
+            -not -path './PHPMailer/*')
+          exit "$failed"
+
+      - name: Check required PHP entry points
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            config.php \
+            api/auth.php \
+            api/middleware.php \
+            api/checkout.php \
+            api/ordering-system.php \
+            api/orders.php \
+            api/order-management.php \
+            api/admin-dashboard.php \
+            api/user-dashboard.php \
+            api/analytics.php; do
+            test -f "$file" || { echo "Missing required file: $file"; exit 1; }
+          done
+
+      - name: Check for committed environment files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -type f \( -name '.env' -o -name '.env.*' \) \
+            -not -name '.env.example' \
+            -not -path './.git/*' \
+            -print -quit | grep -q .; then
+            echo 'A real environment file is committed. Remove it before merging.'
+            exit 1
+          fi
+
+      - name: Basic application smoke tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -r '
+            $required = [
+              "mysqli",
+              "json",
+              "mbstring"
+            ];
+            foreach ($required as $ext) {
+              if (!extension_loaded($ext)) {
+                fwrite(STDERR, "Missing PHP extension: {$ext}\n");
+                exit(1);
+              }
+            }
+            echo "Required PHP extensions loaded.\n";
+          '
+
+          # Verify the repository does not contain obvious hard-coded SMTP credentials.
+          if grep -RInE "(yourgmail@gmail\.com|your-app-password|Username[[:space:]]*=[[:space:]]*['\"]your)" \
+            --include='*.php' . \
+            --exclude-dir=.git \
+            --exclude-dir=PHPMailer; then
+            echo 'Found placeholder/hard-coded SMTP credentials in PHP source.'
+            exit 1
+          fi
