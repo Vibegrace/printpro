@@ -47,6 +47,7 @@ function handleSignup(): void
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) sendResponse(false, 'Invalid email address', [], 422);
     if (strlen($password) < 8) sendResponse(false, 'Password must be at least 8 characters', [], 422);
+    enforceRateLimit('signup', 5, 3600);
 
     $check = $conn->prepare('SELECT id FROM customers WHERE email = ? LIMIT 1');
     $check->bind_param('s', $email);
@@ -80,8 +81,8 @@ function handleLogin(): void
 
     if (!$email || !$password) sendResponse(false, 'Email and password are required', [], 422);
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) sendResponse(false, 'Invalid email address', [], 422);
+    enforceRateLimit('login', 10, 900);
 
-    // Admin/manager accounts live in users; customer accounts live in customers.
     $adminStmt = $conn->prepare('SELECT id,email,password,first_name,last_name,role,status FROM users WHERE email = ? LIMIT 1');
     $adminStmt->bind_param('s', $email);
     $adminStmt->execute();
@@ -100,9 +101,7 @@ function handleLogin(): void
         $_SESSION['customer_id'] = 0;
 
         $u = $conn->prepare('UPDATE users SET last_login = NOW() WHERE id = ?');
-        $u->bind_param('i', $admin['id']);
-        $u->execute();
-        $u->close();
+        $u->bind_param('i', $admin['id']); $u->execute(); $u->close();
 
         sendResponse(true, 'Login successful', ['user'=>[
             'id'=>$admin['id'],'email'=>$admin['email'],'first_name'=>$admin['first_name'],
@@ -112,13 +111,9 @@ function handleLogin(): void
     $adminStmt->close();
 
     $stmt = $conn->prepare('SELECT * FROM customers WHERE email = ? LIMIT 1');
-    $stmt->bind_param('s', $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt->bind_param('s', $email); $stmt->execute(); $result = $stmt->get_result();
     if (!$result->num_rows) sendResponse(false, 'Invalid email or password', [], 401);
-
-    $user = $result->fetch_assoc();
-    $stmt->close();
+    $user = $result->fetch_assoc(); $stmt->close();
 
     if (empty($user['password']) || !password_verify($password, $user['password'])) {
         sendResponse(false, 'Invalid email or password', [], 401);
@@ -130,9 +125,7 @@ function handleLogin(): void
     $_SESSION['admin_id'] = 0;
 
     $u = $conn->prepare('UPDATE customers SET last_login = NOW() WHERE id = ?');
-    $u->bind_param('i', $user['id']);
-    $u->execute();
-    $u->close();
+    $u->bind_param('i', $user['id']); $u->execute(); $u->close();
 
     sendResponse(true, 'Login successful', ['user'=>[
         'id'=>$user['id'],'email'=>$user['email'],'first_name'=>$user['first_name'],
@@ -158,9 +151,7 @@ function handleMe(): void
     global $conn;
     $id = requireLogin();
     $stmt = $conn->prepare('SELECT id,email,phone,first_name,last_name,address,city,state,role,created_at FROM customers WHERE id = ? LIMIT 1');
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt->bind_param('i', $id); $stmt->execute(); $result = $stmt->get_result();
     if (!$result->num_rows) sendResponse(false, 'Account not found', [], 404);
     sendResponse(true, 'Account retrieved', ['user'=>$result->fetch_assoc()]);
 }
@@ -170,31 +161,24 @@ function handleForgetPassword(): void
     global $conn;
     $email = strtolower(clean($_POST['email'] ?? ''));
     if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) sendResponse(false, 'Valid email is required', [], 422);
+    enforceRateLimit('forget_password', 3, 3600);
 
     $stmt = $conn->prepare('SELECT id,first_name,last_name FROM customers WHERE email = ? LIMIT 1');
-    $stmt->bind_param('s', $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt->bind_param('s', $email); $stmt->execute(); $result = $stmt->get_result();
 
-    // Always return the same message to prevent account enumeration.
     if ($result->num_rows) {
-        $user = $result->fetch_assoc();
-        $stmt->close();
-
+        $user = $result->fetch_assoc(); $stmt->close();
         $token = bin2hex(random_bytes(32));
         $tokenHash = hash('sha256', $token);
 
         $old = $conn->prepare('DELETE FROM password_resets WHERE email = ?');
-        $old->bind_param('s', $email);
-        $old->execute();
-        $old->close();
+        $old->bind_param('s', $email); $old->execute(); $old->close();
 
         $save = $conn->prepare('INSERT INTO password_resets (email, token, expires_at, created_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NOW())');
-        $save->bind_param('ss', $email, $tokenHash);
-        $save->execute();
-        $save->close();
+        $save->bind_param('ss', $email, $tokenHash); $save->execute(); $save->close();
 
-        $resetLink = 'https://www.printsiv.com/reset-password.html?token=' . urlencode($token);
+        $baseUrl = rtrim(getenv('APP_BASE_URL') ?: 'https://www.printsiv.com', '/');
+        $resetLink = $baseUrl . '/reset-password.html?token=' . urlencode($token);
         sendResetEmail($email, $user, $resetLink);
     } else {
         $stmt->close();
@@ -213,44 +197,27 @@ function handleResetPassword(): void
     if (!preg_match('/^[a-f0-9]{64}$/i', $token)) sendResponse(false, 'Invalid or expired reset link', [], 400);
     if (strlen($password) < 8) sendResponse(false, 'Password must be at least 8 characters', [], 422);
     if ($password !== $confirm) sendResponse(false, 'Passwords do not match', [], 422);
+    enforceRateLimit('reset_password', 5, 3600);
 
     $tokenHash = hash('sha256', $token);
-    $stmt = $conn->prepare(
-        'SELECT id,email FROM password_resets
-         WHERE token = ? AND used_at IS NULL AND expires_at > NOW()
-         ORDER BY id DESC LIMIT 1'
-    );
-    $stmt->bind_param('s', $tokenHash);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if (!$result->num_rows) {
-        $stmt->close();
-        sendResponse(false, 'Invalid or expired reset link', [], 400);
-    }
+    $stmt = $conn->prepare('SELECT id,email FROM password_resets WHERE token = ? AND used_at IS NULL AND expires_at > NOW() ORDER BY id DESC LIMIT 1');
+    $stmt->bind_param('s', $tokenHash); $stmt->execute(); $result = $stmt->get_result();
+    if (!$result->num_rows) { $stmt->close(); sendResponse(false, 'Invalid or expired reset link', [], 400); }
 
-    $reset = $result->fetch_assoc();
-    $stmt->close();
-
+    $reset = $result->fetch_assoc(); $stmt->close();
     $hash = password_hash($password, PASSWORD_DEFAULT);
     $conn->begin_transaction();
 
     try {
         $update = $conn->prepare('UPDATE customers SET password = ?, updated_at = NOW() WHERE email = ? LIMIT 1');
         $update->bind_param('ss', $hash, $reset['email']);
-        if (!$update->execute() || $update->affected_rows < 1) {
-            $update->close();
-            throw new RuntimeException('Password update failed');
-        }
+        if (!$update->execute() || $update->affected_rows < 1) { $update->close(); throw new RuntimeException('Password update failed'); }
         $update->close();
 
         $consume = $conn->prepare('UPDATE password_resets SET used_at = NOW() WHERE id = ? AND used_at IS NULL');
         $consume->bind_param('i', $reset['id']);
-        if (!$consume->execute() || $consume->affected_rows !== 1) {
-            $consume->close();
-            throw new RuntimeException('Reset token could not be consumed');
-        }
+        if (!$consume->execute() || $consume->affected_rows !== 1) { $consume->close(); throw new RuntimeException('Reset token could not be consumed'); }
         $consume->close();
-
         $conn->commit();
     } catch (Throwable $e) {
         $conn->rollback();
@@ -258,14 +225,12 @@ function handleResetPassword(): void
         sendResponse(false, 'Unable to reset password. Please request a new link.', [], 500);
     }
 
-    // Do not retain an authenticated session after a password change.
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
         setcookie(session_name(), '', time()-42000, $params['path'], $params['domain'] ?? '', $params['secure'], $params['httponly']);
     }
     session_destroy();
-
     sendResponse(true, 'Password reset successfully. Please log in with your new password.');
 }
 
@@ -273,22 +238,26 @@ function sendResetEmail(string $email, array $user, string $resetLink): void
 {
     try {
         $mail = new PHPMailer(true);
-        $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
-        $mail->SMTPAuth = true;
-        $mail->Username = getenv('MAIL_USERNAME') ?: '';
-        $mail->Password = getenv('MAIL_PASSWORD') ?: '';
-        $mail->SMTPSecure = 'tls';
-        $mail->Port = 587;
+        $mail->isSMTP(); $mail->Host = 'smtp.gmail.com'; $mail->SMTPAuth = true;
+        $mail->Username = getenv('MAIL_USERNAME') ?: ''; $mail->Password = getenv('MAIL_PASSWORD') ?: '';
+        $mail->SMTPSecure = 'tls'; $mail->Port = 587;
         $mail->setFrom($mail->Username ?: 'no-reply@printsiv.com', 'Printsiv');
         $mail->addAddress($email, trim(($user['first_name'] ?? '').' '.($user['last_name'] ?? '')));
-        $mail->isHTML(true);
-        $mail->Subject = 'Printsiv - Password Reset Request';
+        $mail->isHTML(true); $mail->Subject = 'Printsiv - Password Reset Request';
         $mail->Body = '<h2>Password Reset Request</h2><p>Use the link below to choose a new password.</p><p><a href="'.htmlspecialchars($resetLink, ENT_QUOTES, 'UTF-8').'">Reset Password</a></p><p>This link expires in 1 hour and can only be used once.</p>';
         if ($mail->Username && $mail->Password) $mail->send();
-    } catch (Exception $e) {
-        error_log('Password reset mail error: '.$e->getMessage());
-    }
+    } catch (Exception $e) { error_log('Password reset mail error: '.$e->getMessage()); }
+}
+
+function enforceRateLimit(string $action, int $limit, int $window): void
+{
+    $now = time();
+    $key = '__rate_' . $action;
+    $state = $_SESSION[$key] ?? ['count'=>0,'started'=>$now];
+    if (($now - (int)$state['started']) >= $window) $state = ['count'=>0,'started'=>$now];
+    $state['count']++;
+    $_SESSION[$key] = $state;
+    if ($state['count'] > $limit) sendResponse(false, 'Too many attempts. Please try again later.', [], 429);
 }
 
 function clean($data): string
