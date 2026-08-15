@@ -1,14 +1,11 @@
 <?php
 /**
- * Checkout API - Process Orders (CLEAN VERSION)
+ * Checkout API - server-authoritative order creation.
  */
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 require_once '../config.php';
 
-/* =========================
-   PHPMailer
-========================= */
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -16,267 +13,154 @@ require '../PHPMailer/src/Exception.php';
 require '../PHPMailer/src/PHPMailer.php';
 require '../PHPMailer/src/SMTP.php';
 
-/* =========================
-   ROUTE REQUEST
-========================= */
 $action = $_POST['action'] ?? '';
+if ($action === 'create_order') createOrder();
+sendResponse(false, 'Invalid action', [], 400);
 
-if ($action === 'create_order') {
-    createOrder();
-} else {
-    sendResponse(false, 'Invalid action');
-}
-
-/* =========================
-   CREATE ORDER
-========================= */
-function createOrder()
+function createOrder(): void
 {
     global $conn;
 
-    $required = [
-        'fullName', 'email', 'phone',
-        'address', 'city', 'state',
-        'paymentMethod', 'cart', 'total'
-    ];
-
+    $required = ['fullName','email','phone','address','city','state','paymentMethod','cart'];
     foreach ($required as $field) {
-        if (empty($_POST[$field])) {
-            sendResponse(false, "Field {$field} is required");
-        }
+        if (empty($_POST[$field])) sendResponse(false, "Field {$field} is required", [], 422);
     }
 
-    $fullName = sanitize($_POST['fullName']);
-    $email = sanitize($_POST['email']);
-    $phone = sanitize($_POST['phone']);
-    $address = sanitize($_POST['address']);
-    $city = sanitize($_POST['city']);
-    $state = sanitize($_POST['state']);
-    $paymentMethod = sanitize($_POST['paymentMethod']);
-
-    $subtotal = floatval($_POST['subtotal'] ?? 0);
-    $tax = floatval($_POST['tax'] ?? 0);
-    $shipping = floatval($_POST['shipping'] ?? 0);
-    $total = floatval($_POST['total']);
-
+    $fullName = clean($_POST['fullName']);
+    $email = strtolower(clean($_POST['email']));
+    $phone = clean($_POST['phone']);
+    $address = clean($_POST['address']);
+    $city = clean($_POST['city']);
+    $state = clean($_POST['state']);
+    $paymentMethod = clean($_POST['paymentMethod']);
     $cartItems = json_decode($_POST['cart'], true);
 
-    if (!is_array($cartItems) || empty($cartItems)) {
-        sendResponse(false, 'Cart is empty');
-    }
+    if (!is_array($cartItems) || empty($cartItems)) sendResponse(false, 'Cart is empty', [], 422);
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) sendResponse(false, 'Invalid email', [], 422);
+    if (!preg_match('/^[0-9+\-\s()]+$/', $phone)) sendResponse(false, 'Invalid phone', [], 422);
+    if (count($cartItems) > 100) sendResponse(false, 'Cart contains too many items', [], 422);
 
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        sendResponse(false, 'Invalid email');
-    }
+    $items = [];
+    $subtotal = 0.0;
+    $lookup = $conn->prepare('SELECT id, product_name, price, status FROM products WHERE id = ? LIMIT 1');
 
-    if (!preg_match('/^[0-9+\-\s()]+$/', $phone)) {
-        sendResponse(false, 'Invalid phone');
-    }
-
-    $order_id = generateOrderId();
-
-    $conn->begin_transaction();
-
-    try {
-
-        /* =========================
-           INSERT ORDER
-        ========================= */
-        $sql = "INSERT INTO orders 
-        (order_id, customer_name, email, phone, address, city, state, payment_method, subtotal, tax, shipping, total, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
-
-        $stmt = $conn->prepare($sql);
-
-        $stmt->bind_param(
-            "ssssssssddds",
-            $order_id,
-            $fullName,
-            $email,
-            $phone,
-            $address,
-            $city,
-            $state,
-            $paymentMethod,
-            $subtotal,
-            $tax,
-            $shipping,
-            $total
-        );
-
-        $stmt->execute();
-        $stmt->close();
-
-        /* =========================
-           INSERT ORDER ITEMS
-        ========================= */
-        $sqlItem = "INSERT INTO order_items 
-        (order_id, product_id, product_name, price, quantity, subtotal)
-        VALUES (?, ?, ?, ?, ?, ?)";
-
-        $stmtItem = $conn->prepare($sqlItem);
-
-        foreach ($cartItems as $item) {
-
-            $product_id = intval($item['id']);
-            $product_name = sanitize($item['name']);
-            $price = floatval($item['price']);
-            $qty = intval($item['quantity']);
-            $subtotalItem = $price * $qty;
-
-            $stmtItem->bind_param(
-                "sisdid",
-                $order_id,
-                $product_id,
-                $product_name,
-                $price,
-                $qty,
-                $subtotalItem
-            );
-
-            $stmtItem->execute();
+    foreach ($cartItems as $item) {
+        $productId = (int)($item['id'] ?? 0);
+        $quantity = (int)($item['quantity'] ?? 0);
+        if ($productId <= 0 || $quantity < 1 || $quantity > 10000) {
+            $lookup->close();
+            sendResponse(false, 'Invalid cart item', [], 422);
         }
 
-        $stmtItem->close();
+        $lookup->bind_param('i', $productId);
+        $lookup->execute();
+        $result = $lookup->get_result();
+        if (!$result->num_rows) {
+            $lookup->close();
+            sendResponse(false, 'A product in your cart is no longer available', [], 409);
+        }
 
-        $conn->commit();
-		
-		 /* =========================
-           WHATSAPP NOTIFICATION
-        ========================= */
-		
-		function sendWhatsAppNotification($order_id, $name, $total)
-{
-    $phone = "2348063758039"; // your admin number
+        $product = $result->fetch_assoc();
+        if (($product['status'] ?? 'active') !== 'active') {
+            $lookup->close();
+            sendResponse(false, 'A product in your cart is no longer available', [], 409);
+        }
 
-    $message = urlencode("
-	New Order Received:
-
-Order ID: $order_id
-Customer: $name
-Total: ₦$total
-");
-
-    $url = "https://wa.me/$phone?text=$message";
-
-    file_get_contents($url);
-}
-
-        /* =========================
-           SEND EMAIL
-        ========================= */
-        sendConfirmationEmail($email, $fullName, $order_id, $cartItems, $total);
-
-        sendResponse(true, 'Order placed successfully', [
-            'order_id' => $order_id
-        ]);
-
-    } catch (Exception $e) {
-        $conn->rollback();
-        sendResponse(false, $e->getMessage());
+        $price = (float)$product['price'];
+        $lineTotal = round($price * $quantity, 2);
+        $subtotal += $lineTotal;
+        $items[] = [
+            'id' => $productId,
+            'name' => $product['product_name'],
+            'price' => $price,
+            'quantity' => $quantity,
+            'subtotal' => $lineTotal
+        ];
     }
-}
+    $lookup->close();
 
-/* =========================
-   ORDER ID
-========================= */
-function generateOrderId()
-{
-    return 'ORD-' . time() . '-' . strtoupper(bin2hex(random_bytes(4)));
-}
+    // Keep these business rules server-side so clients cannot alter the amount charged/stored.
+    $tax = round($subtotal * 0.05, 2);
+    $shipping = 500.00;
+    $total = round($subtotal + $tax + $shipping, 2);
+    $orderId = generateOrderId();
 
-/* =========================
-   SANITIZE
-========================= */
-function sanitize($data)
-{
-    global $conn;
-    return $conn->real_escape_string(trim(strip_tags($data)));
-}
-
-/* =========================
-   RESPONSE
-========================= */
-function sendResponse($success, $message, $data = [])
-{
-    echo json_encode([
-        'success' => $success,
-        'message' => $message,
-        'data' => $data
-    ]);
-    exit;
-}
-
-/* =========================
-   EMAIL (PHPMailer SMTP)
-========================= */
-function sendConfirmationEmail($email, $name, $order_id, $items, $total)
-{
-    $baseUrl = 'https://www.printsiv.com.ng/';
-
-    $mail = new PHPMailer(true);
-
+    $conn->begin_transaction();
     try {
+        $sql = "INSERT INTO orders
+            (order_id, customer_name, email, phone, address, city, state, payment_method,
+             subtotal, tax, shipping, total, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param(
+            'ssssssssdddd',
+            $orderId, $fullName, $email, $phone, $address, $city, $state, $paymentMethod,
+            $subtotal, $tax, $shipping, $total
+        );
+        if (!$stmt->execute()) throw new RuntimeException('Unable to create order');
+        $stmt->close();
 
+        $itemStmt = $conn->prepare('INSERT INTO order_items (order_id, product_id, product_name, price, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)');
+        foreach ($items as $item) {
+            $itemStmt->bind_param('sisdid', $orderId, $item['id'], $item['name'], $item['price'], $item['quantity'], $item['subtotal']);
+            if (!$itemStmt->execute()) throw new RuntimeException('Unable to create order items');
+        }
+        $itemStmt->close();
+        $conn->commit();
+    } catch (Throwable $e) {
+        $conn->rollback();
+        error_log('Checkout error: '.$e->getMessage());
+        sendResponse(false, 'Unable to place order. Please try again.', [], 500);
+    }
+
+    sendConfirmationEmail($email, $fullName, $orderId, $items, $total);
+    sendResponse(true, 'Order placed successfully', ['order_id' => $orderId, 'total' => $total]);
+}
+
+function generateOrderId(): string
+{
+    return 'ORD-' . date('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(4)));
+}
+
+function sendConfirmationEmail(string $email, string $name, string $orderId, array $items, float $total): void
+{
+    try {
+        $mail = new PHPMailer(true);
         $mail->isSMTP();
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
-        $mail->Username = 'yourgmail@gmail.com';
-        $mail->Password = 'your-app-password';
+        $mail->Username = getenv('MAIL_USERNAME') ?: '';
+        $mail->Password = getenv('MAIL_PASSWORD') ?: '';
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
-
-        $mail->setFrom('yourgmail@gmail.com', 'Printsiv');
+        if ($mail->Username) $mail->setFrom($mail->Username, 'Printsiv');
         $mail->addAddress($email, $name);
-
         $mail->isHTML(true);
-        $mail->Subject = "Order Confirmation - $order_id";
+        $mail->Subject = "Order Confirmation - {$orderId}";
 
-        $body = "
-        <h2>Order Confirmation</h2>
-        <p>Hi " . htmlspecialchars($name) . "</p>
-        <p>Your order has been received.</p>
-
-        <p><strong>Order ID:</strong> $order_id</p>
-
-        <table style='width:100%;border-collapse:collapse;'>
-        ";
-
+        $body = '<h2>Order Confirmation</h2><p>Hi '.htmlspecialchars($name, ENT_QUOTES, 'UTF-8').'</p>';
+        $body .= '<p>Your order has been received.</p><p><strong>Order ID:</strong> '.htmlspecialchars($orderId, ENT_QUOTES, 'UTF-8').'</p><table style="width:100%;border-collapse:collapse;">';
         foreach ($items as $item) {
-
-            $image = !empty($item['image'])
-                ? $baseUrl . ltrim($item['image'], '/')
-                : $baseUrl . 'img/placeholder.jpg';
-
-            $body .= "
-            <tr>
-                <td>
-                    <img src='$image' width='60' height='60' style='object-fit:cover;border-radius:5px;'>
-                </td>
-                <td>
-                    {$item['name']} x {$item['quantity']}
-                </td>
-                <td align='right'>
-                    ₦" . number_format($item['price'] * $item['quantity'], 2) . "
-                </td>
-            </tr>
-            ";
+            $body .= '<tr><td>'.htmlspecialchars($item['name'], ENT_QUOTES, 'UTF-8').' x '.(int)$item['quantity'].'</td><td align="right">₦'.number_format($item['subtotal'], 2).'</td></tr>';
         }
-
-        $body .= "
-        <tr>
-            <td colspan='2'><b>Total</b></td>
-            <td align='right'><b>₦" . number_format($total, 2) . "</b></td>
-        </tr>
-        </table>
-        ";
-
+        $body .= '<tr><td><b>Total</b></td><td align="right"><b>₦'.number_format($total, 2).'</b></td></tr></table>';
         $mail->Body = $body;
-
-        $mail->send();
-
+        if ($mail->Username && $mail->Password) $mail->send();
     } catch (Exception $e) {
-        error_log("Mail Error: " . $mail->ErrorInfo);
+        error_log('Order confirmation mail error: '.$e->getMessage());
     }
+}
+
+function clean($data): string
+{
+    global $conn;
+    return $conn->real_escape_string(trim(strip_tags((string)$data)));
+}
+
+function sendResponse(bool $success, string $message, array $data = [], int $status = 200): void
+{
+    http_response_code($status);
+    echo json_encode(['success'=>$success,'message'=>$message,'data'=>$data]);
+    exit;
 }
 ?>

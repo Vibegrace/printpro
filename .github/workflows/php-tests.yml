@@ -1,0 +1,154 @@
+name: PHP Tests
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+permissions:
+  contents: read
+
+jobs:
+  php-tests:
+    name: PHP ${{ matrix.php-version }} checks
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.1', '8.2', '8.3']
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: printsiv_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mysqli, mbstring, json
+          coverage: none
+
+      - name: PHP version
+        run: php -v
+
+      - name: PHP syntax check
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          while IFS= read -r -d '' file; do
+            if ! php -l "$file"; then
+              failed=1
+            fi
+          done < <(find . -type f -name '*.php' \
+            -not -path './.git/*' \
+            -not -path './vendor/*' \
+            -not -path './PHPMailer/*')
+          exit "$failed"
+
+      - name: Check required PHP entry points
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            config.php \
+            api/auth.php \
+            api/middleware.php \
+            api/checkout.php \
+            api/ordering-system.php \
+            api/orders.php \
+            api/order-management.php \
+            api/admin-dashboard.php \
+            api/user-dashboard.php \
+            api/analytics.php; do
+            test -f "$file" || { echo "Missing required file: $file"; exit 1; }
+          done
+
+      - name: Check for committed environment files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -type f \( -name '.env' -o -name '.env.*' \) \
+            -not -name '.env.example' \
+            -not -path './.git/*' \
+            -print -quit | grep -q .; then
+            echo 'A real environment file is committed. Remove it before merging.'
+            exit 1
+          fi
+
+      - name: Check database schema
+        env:
+          MYSQL_PWD: root
+        run: |
+          set -euo pipefail
+          mysql --protocol=tcp -h 127.0.0.1 -uroot printsiv_db < tests/integration.sql
+          mysql --protocol=tcp -h 127.0.0.1 -uroot -e "USE printsiv_db; SHOW TABLES;"
+
+      - name: Start PHP application
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: root
+          DB_NAME: printsiv_db
+          MAIL_USERNAME: ci@example.test
+          MAIL_PASSWORD: ci-test-password
+        run: |
+          set -euo pipefail
+          nohup php -S 127.0.0.1:8080 -t . > /tmp/printpro-php.log 2>&1 &
+          echo $! > /tmp/printpro-php.pid
+          for i in {1..20}; do
+            if curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8080/login.html | grep -q '^200$'; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/printpro-php.log
+          exit 1
+
+      - name: Run API integration smoke tests
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: root
+          DB_NAME: printsiv_db
+        run: bash tests/api-smoke.sh
+
+      - name: Basic application smoke tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -r '
+            $required = ["mysqli", "json", "mbstring"];
+            foreach ($required as $ext) {
+              if (!extension_loaded($ext)) {
+                fwrite(STDERR, "Missing PHP extension: {$ext}\n");
+                exit(1);
+              }
+            }
+            echo "Required PHP extensions loaded.\n";
+          '
+
+          if grep -RInE "(yourgmail@gmail\.com|your-app-password|Username[[:space:]]*=[[:space:]]*['\"]your)" \
+            --include='*.php' . \
+            --exclude-dir=.git \
+            --exclude-dir=PHPMailer; then
+            echo 'Found placeholder/hard-coded SMTP credentials in PHP source.'
+            exit 1
+          fi
